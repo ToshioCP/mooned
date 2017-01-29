@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/github/ToshioCP/Mooned">
+    <file preprocess="xml-stripblanks">moonedwin.ui</file>
+    <file preprocess="xml-stripblanks">appmenu.ui</file>
+  </gresource>
+</gresources>
