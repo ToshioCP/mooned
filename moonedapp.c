@@ -108,7 +108,7 @@ quit_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
     g_action_activate(g_action_map_lookup_action(G_ACTION_MAP(windows->data), "close"), NULL); /*closeアクションをアクティベート*/
 }
 
-/*バーチャル関数をオーバーライドする関数。*/
+/*クラスのオブジェクト・メソッド・ハンドラをオーバーライドする関数。*/
 /*activate, open, startup*/
 
 static void
