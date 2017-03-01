@@ -17,6 +17,7 @@ GLIB_COMPILE_RESOURCES = $(shell $(PKGCONFIG) --variable=glib_compile_resources 
 
 SRC = moonedapp.c moonedwin.c main.c resources.c
 HEADER = moonedapp.h moonedwin.h
+RESOURCES = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=. --generate-dependencies mooned.gresource.xml)
 
 # $(var:a=b)は変数varの中の文字列aを文字列bに置き換えた文字列を返す
 OBJS = $(SRC:.c=.o)
@@ -41,7 +42,7 @@ mooned: $(OBJS)
 $(OBJS): %.o: %.c $(HEADER)
 	$(CC) -fPIC -c -o $(@F) $(CFLAGS) $<
 
-resources.c: mooned.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=. --generate-dependencies mooned.gresource.xml)
+resources.c: mooned.gresource.xml $(RESOURCES)
 	$(GLIB_COMPILE_RESOURCES) mooned.gresource.xml --target=$@ --sourcedir=. --generate-source
 
 .Phony: clean
@@ -50,4 +51,3 @@ clean:
 	rm -f $(OBJS)
 	rm -f mooned
 	rm -f resources.c
-

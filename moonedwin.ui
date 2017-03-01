@@ -5,12 +5,9 @@
     <child>
       <object class="GtkScrolledWindow" id="scrolled_window">
         <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="shadow_type">GTK_SHADOW_IN</property>
         <child>
           <object class="GtkTextView" id="text_view">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
           </object>
         </child>
       </object>

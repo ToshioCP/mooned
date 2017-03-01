@@ -15,8 +15,8 @@ mooned_open_file_chooser_dialog(void) {
   GFile *file;
 
   dialog = GTK_FILE_CHOOSER(gtk_file_chooser_dialog_new("Open File",  NULL, GTK_FILE_CHOOSER_ACTION_OPEN,
-                                      "_Cancel", GTK_RESPONSE_CANCEL,
-                                      "_Open", GTK_RESPONSE_ACCEPT,
+                                      "Cancel", GTK_RESPONSE_CANCEL,
+                                      "Open", GTK_RESPONSE_ACCEPT,
                                       NULL));
   res = gtk_dialog_run(GTK_DIALOG(dialog));
   if (res == GTK_RESPONSE_ACCEPT)
@@ -29,11 +29,11 @@ mooned_open_file_chooser_dialog(void) {
 
 /*ファイルを新しいウィンドウで開くときに、既存のウィンドウと同じファイルを開くのはまずい。*/
 /*そこで、そのファイルのファイル名と同じものが既存のウィンドウのファイル名にあればそのウィンドウを返す*/
-/*同じものがなければNULLを返す。つまり、find_window_containing_file*/
+/*同じものがなければNULLを返す。つまり、find_window_has_file*/
 /*この関数はmoonedwin.cでも保存時のチェックに使うので公開する*/
 
 MoonedWindow *
-mooned_find_window_containing_file(MoonedApplication *app, GFile *file) {
+mooned_find_window_has_same_file(MoonedApplication *app, GFile *file) {
   GList *windows;
   GFile *wfile;
 
@@ -80,7 +80,7 @@ open_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 
   if ((file = mooned_open_file_chooser_dialog()) == NULL) /*Cancel*/
     return;
-  same_win = mooned_find_window_containing_file(app, file);
+  same_win = mooned_find_window_has_same_file(app, file);
   empty_win = mooned_find_empty_window(app);
   if (same_win)
     gtk_window_present(GTK_WINDOW(same_win));
@@ -125,7 +125,7 @@ mooned_application_open(GApplication *app, GFile **files, gint n_files, const gc
   MoonedWindow *win;
 
   for (i = 0; i < n_files; i++) {
-    win = mooned_find_window_containing_file(MOONED_APPLICATION(app), files[i]);
+    win = mooned_find_window_has_same_file(MOONED_APPLICATION(app), files[i]);
     if (win == NULL)
       win = mooned_window_open(MOONED_APPLICATION(app), files[i]);
     gtk_window_present(GTK_WINDOW(win));

@@ -10,7 +10,7 @@ G_DECLARE_FINAL_TYPE(MoonedApplication, mooned_application, MOONED, APPLICATION,
 #include "moonedwin.h"
 
 MoonedApplication *mooned_application_new(void);
-MoonedWindow *mooned_find_window_containing_file(MoonedApplication *app, GFile *file);
+MoonedWindow *mooned_find_window_has_same_file(MoonedApplication *app, GFile *file);
 
 #endif /* __MOONEDAPP_H */
 

@@ -23,7 +23,6 @@ struct _MoonedWindow
 {
   GtkApplicationWindow parent;
   /* private data */
-  GtkScrolledWindow *scrolled_window;
   GtkTextView *text_view;
   GtkTextBuffer *text_buffer;
   GFile *file;
@@ -43,8 +42,8 @@ mooned_saveas_file_chooser_dialog(MoonedWindow *win) {
   GFile *file;
 
   dialog = GTK_FILE_CHOOSER(gtk_file_chooser_dialog_new("Save as File", GTK_WINDOW(win), GTK_FILE_CHOOSER_ACTION_SAVE,
-                                      "_Cancel", GTK_RESPONSE_CANCEL,
-                                      "_Save as", GTK_RESPONSE_ACCEPT,
+                                      "Cancel", GTK_RESPONSE_CANCEL,
+                                      "Save as", GTK_RESPONSE_ACCEPT,
                                       NULL));
   res = gtk_dialog_run(GTK_DIALOG(dialog));
   if (res == GTK_RESPONSE_ACCEPT)
@@ -57,6 +56,7 @@ mooned_saveas_file_chooser_dialog(MoonedWindow *win) {
 
 /*閉じる前に「保存しますか？」*/
 /* Cancel => return TRUE, Save|Quit(not save) => return FALSE */
+/*この戻り値はdelete event handlerの戻り値に合わせている*/
 
 static gboolean
 saveornot_before_close(MoonedWindow *win) {
@@ -69,8 +69,8 @@ saveornot_before_close(MoonedWindow *win) {
   filename = win->file ? g_file_get_basename(win->file) : "Untitled";
   message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING,
                       GTK_BUTTONS_NONE, "Save changes to document %s before closing?", filename);
-  gtk_dialog_add_buttons (GTK_DIALOG(message_dialog), "Close _without Saving", GTK_RESPONSE_REJECT,
-                                                      "_Cancel", GTK_RESPONSE_CANCEL, "_Save", GTK_RESPONSE_ACCEPT,  NULL);
+  gtk_dialog_add_buttons (GTK_DIALOG(message_dialog), "Close without Saving", GTK_RESPONSE_REJECT,
+                                                      "Cancel", GTK_RESPONSE_CANCEL, "Save", GTK_RESPONSE_ACCEPT,  NULL);
   if (win->file)
     g_free(filename);
   res = gtk_dialog_run(GTK_DIALOG(message_dialog));
@@ -87,7 +87,7 @@ saveornot_before_close(MoonedWindow *win) {
     case GTK_RESPONSE_CANCEL:
       return TRUE;
     default: /*close bottun was pressed*/
-      g_print("The bottun was not pressed.");
+      g_print("The bottun(Close without Saving/Cancel/Save) was not pressed.");
       return TRUE;
   }
 }
@@ -95,6 +95,9 @@ saveornot_before_close(MoonedWindow *win) {
 /*シグナルに対するハンドラ*/
 
 /*ウィンドウのタイトルバーのクローズボタンが押された時・・・これはXウィンドウの管理でGtkではないらしい*/
+/*戻り値*/
+/*TRUE delete eventの処理を中止する*/
+/*FALSE delete eventの処理を続行する*/
 
 static gboolean
 delete_event_activated(GtkWidget *object, GdkEvent *event, gpointer user_data) {
@@ -123,31 +126,6 @@ changed_activated(GtkTextBuffer *buffer, MoonedWindow *win){
 }
 
 /*save, saveasのヘルパー*/
-
-/*ファイルが他のウィンドウと重なっていないかのテスト*/
-/*TRUE => ファイルの重なりはない*/
-/*FALSE => ファイルが重なっている（コンフリクト） => 警告メッセージを出す*/
-
-static gboolean
-file_unique_test(MoonedWindow *win, GFile *file) {
-  MoonedApplication *app;
-  MoonedWindow *same_win;
-  GtkWidget *message_dialog;
-  gchar *filename;
-
-  app = MOONED_APPLICATION(gtk_window_get_application(GTK_WINDOW(win)));
-  if ((same_win = mooned_find_window_containing_file(app, file))  && (same_win != win)) { /*conflict !*/
-    filename = g_file_get_basename(file);
-    message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING,
-                      GTK_BUTTONS_CLOSE, "Can't save %s because it's in the other window.", filename);
-    gtk_dialog_run(GTK_DIALOG(message_dialog));
-    g_free(filename);
-    gtk_widget_destroy(message_dialog);
-    return FALSE;
-  }else
-    return TRUE;
-}
-
 /*バッファを（チェック済みの）ファイルに保存しタイトルのファイル名やchangedフラグを更新する*/
 /*前提として、win->fileが更新されていて、そのファイルに保存する*/
 static void
@@ -158,15 +136,14 @@ save_buffer(MoonedWindow *win) {
   GtkTextIter start_iter;
   GtkTextIter end_iter;
 
+  filename = g_file_get_basename(win->file);
   gtk_text_buffer_get_bounds(win->text_buffer, &start_iter, &end_iter);
   contents = gtk_text_buffer_get_text(win->text_buffer, &start_iter, &end_iter, TRUE);
   if (g_file_replace_contents(win->file, contents, strlen(contents), NULL, TRUE, G_FILE_CREATE_NONE, NULL, NULL, NULL)) {
     win->changed = FALSE;
-    filename = g_file_get_basename(win->file);
     gtk_window_set_title(GTK_WINDOW(win), filename);
     g_free(filename);
   }else {
-    filename = g_file_get_basename(win->file);
     message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
                     GTK_BUTTONS_CLOSE, "ERROR : Can't save %s.", filename);
     gtk_dialog_run(GTK_DIALOG(message_dialog));
@@ -183,27 +160,35 @@ save_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
   MoonedWindow *win = MOONED_WINDOW(user_data);
   GFile *file;
 
-  if (win->file == NULL) {
-    if ((file = mooned_saveas_file_chooser_dialog(win)) == NULL)
-      return; /* do nothing */
-    if (! file_unique_test(win, file))
-      return;
-    win->file = file;
-  }
-  save_buffer(win);
+  if (win->file == NULL) /*ファイルが設定されてなければsaveasと同じ動作*/
+    saveas_activated(action, parameter, user_data);
+  else
+    save_buffer(win);
 }
 
 static void
 saveas_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
   MoonedWindow *win = MOONED_WINDOW(user_data);
   GFile *file;
+  MoonedApplication *app;
+  MoonedWindow *same_win;
+  GtkWidget *message_dialog;
+  gchar *filename;
 
-  if (! (file = mooned_saveas_file_chooser_dialog(win)))
+  if ((file = mooned_saveas_file_chooser_dialog(win)) == NULL)
     return; /* do nothing */
-  if (! file_unique_test(win, file))
-    return;
-  win->file = file;
-  save_buffer(win);
+  app = MOONED_APPLICATION(gtk_window_get_application(GTK_WINDOW(win)));
+  if ((same_win = mooned_find_window_has_same_file(app, file))  && (same_win != win)) { /*conflict !*/
+    filename = g_file_get_basename(file);
+    message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING,
+                      GTK_BUTTONS_CLOSE, "Can't save %s because it's in the other window.", filename);
+    gtk_dialog_run(GTK_DIALOG(message_dialog));
+    g_free(filename);
+    gtk_widget_destroy(message_dialog);
+  }else {
+    win->file = file;
+    save_buffer(win);
+  }
 }
 
 static void
@@ -265,7 +250,6 @@ static void
 mooned_window_class_init (MoonedWindowClass *class)
 {
   gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(class), "/com/github/ToshioCP/Mooned/moonedwin.ui");
-  gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MoonedWindow, scrolled_window);
   gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MoonedWindow, text_view);
 }
 
@@ -286,9 +270,31 @@ const GActionEntry win_entries[] = {
 MoonedWindow *mooned_window_new(MoonedApplication *app)
 {
   MoonedWindow *win;
+  GtkCssProvider *provider;
+  GtkStyleContext *context;
 
   win = g_object_new(MOONED_TYPE_WINDOW, "application", app, NULL);
+
   win->text_buffer = gtk_text_view_get_buffer(win->text_view);
+/* margin */
+  gtk_text_view_set_left_margin(win->text_view, 5);
+  gtk_text_view_set_right_margin(win->text_view, 5);
+/*font*/
+  gtk_text_view_set_monospace(win->text_view, TRUE);
+  provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(provider,
+                                 "textview {"
+                                 "font: IPAGothic 12;"
+                                 "color: green;"
+                                 "}",
+                                 -1, NULL);
+  context = gtk_widget_get_style_context(GTK_WIDGET(win->text_view));
+  gtk_style_context_add_provider(context,
+                               GTK_STYLE_PROVIDER(provider),
+                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+/* Wrap mode */
+  gtk_text_view_set_wrap_mode(win->text_view, GTK_WRAP_WORD);
+/* */
   win->changed = FALSE;
   win->file = NULL;
   g_action_map_add_action_entries(G_ACTION_MAP(win), win_entries, G_N_ELEMENTS(win_entries), win);
