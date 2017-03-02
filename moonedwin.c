@@ -12,7 +12,7 @@ closeアクションがアクティブになると、そのハンドラが起動
 （注意）オブジェクトの親子関係とウィジェットの親子関係は別の概念である。混同しないように。
 3 ウィンドウはファイルと1対1に対応する。ただし、ファイルと未対応のものもある（後で対応する予定のものである）。
 このことは、「Open」「Save」「SaveAs」のメニューなどで、1対1対応が崩れないような注意が必要になる。
-（注意）ファイルを表現するにはGFileへのポインタを使う。とくに4で述べるパブリック関数の引数や返し値はそれを使う。
+（注意）ファイルを表現するにはGFileへのポインタを使う。とくに4で述べるパブリック関数の引数や戻り値はそれを使う。
 4 外のオブジェクトからアクセスするためのパブリック関数を持っている
 
 生成はmooned_window_newで。初期化もこの関数の中で行う
@@ -45,6 +45,11 @@ mooned_saveas_file_chooser_dialog(MoonedWindow *win) {
                                       "Cancel", GTK_RESPONSE_CANCEL,
                                       "Save as", GTK_RESPONSE_ACCEPT,
                                       NULL));
+  gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
+  if (win->file)
+    gtk_file_chooser_set_filename(dialog, g_file_get_basename(win->file));
+  else
+    gtk_file_chooser_set_current_name(dialog, "Untitled");
   res = gtk_dialog_run(GTK_DIALOG(dialog));
   if (res == GTK_RESPONSE_ACCEPT)
     file = gtk_file_chooser_get_file(dialog);
@@ -52,6 +57,73 @@ mooned_saveas_file_chooser_dialog(MoonedWindow *win) {
     file = NULL;
   gtk_widget_destroy(GTK_WIDGET(dialog));
   return file;
+}
+
+/*save, saveasのヘルパー*/
+/*バッファを（チェック済みの）ファイルに保存しタイトルのファイル名やchangedフラグを更新する*/
+/*前提として、win->fileが更新されていて、そのファイルに保存する*/
+static void
+save_buffer(MoonedWindow *win) {
+  GtkWidget *message_dialog;
+  char *contents;
+  gchar *filename;
+  GtkTextIter start_iter;
+  GtkTextIter end_iter;
+
+  filename = g_file_get_basename(win->file);
+  gtk_text_buffer_get_bounds(win->text_buffer, &start_iter, &end_iter);
+  contents = gtk_text_buffer_get_text(win->text_buffer, &start_iter, &end_iter, TRUE);
+  if (g_file_replace_contents(win->file, contents, strlen(contents), NULL, TRUE, G_FILE_CREATE_NONE, NULL, NULL, NULL)) {
+    win->changed = FALSE;
+    gtk_window_set_title(GTK_WINDOW(win), filename);
+  }else {
+    message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
+                    GTK_BUTTONS_CLOSE, "ERROR : Can't save %s.", filename);
+    gtk_dialog_run(GTK_DIALOG(message_dialog));
+    gtk_widget_destroy(message_dialog);
+  }
+  g_free(filename);
+  g_free(contents);
+}
+
+/*戻り値はboolean*/
+/*この戻り値はdelete event handlerの戻り値に合わせている*/
+static gboolean
+saveas_real_activated(MoonedWindow *win) {
+  GFile *file;
+  MoonedApplication *app;
+  MoonedWindow *same_win;
+  GtkWidget *message_dialog;
+  gchar *filename;
+
+  if ((file = mooned_saveas_file_chooser_dialog(win)) == NULL)
+    return TRUE; /* do nothing */
+  app = MOONED_APPLICATION(gtk_window_get_application(GTK_WINDOW(win)));
+  if ((same_win = mooned_find_window_has_same_file(app, file))  && (same_win != win)) { /*conflict !*/
+    filename = g_file_get_basename(file);
+    message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING,
+                      GTK_BUTTONS_CLOSE, "Can't save %s because it's in the other window.", filename);
+    gtk_dialog_run(GTK_DIALOG(message_dialog));
+    g_free(filename);
+    gtk_widget_destroy(message_dialog);
+    return TRUE;
+  }else {
+    win->file = file;
+    save_buffer(win);
+    return FALSE;
+  }
+}
+
+static gboolean
+save_real_activated(MoonedWindow *win) {
+  GFile *file;
+
+  if (win->file == NULL) /*ファイルが設定されてなければsaveasと同じ動作*/
+    return saveas_real_activated(win);
+  else {
+    save_buffer(win);
+    return FALSE;
+  }
 }
 
 /*閉じる前に「保存しますか？」*/
@@ -78,10 +150,9 @@ saveornot_before_close(MoonedWindow *win) {
   switch (res) {
     case GTK_RESPONSE_ACCEPT:
       if (win->file)
-        g_action_group_activate_action(G_ACTION_GROUP(win), "save", NULL);
+        return save_real_activated(win);
       else
-        g_action_group_activate_action(G_ACTION_GROUP(win), "saveas", NULL);
-      return FALSE;
+        return saveas_real_activated(win);
     case GTK_RESPONSE_REJECT:
       return FALSE;
     case GTK_RESPONSE_CANCEL:
@@ -125,70 +196,16 @@ changed_activated(GtkTextBuffer *buffer, MoonedWindow *win){
   }
 }
 
-/*save, saveasのヘルパー*/
-/*バッファを（チェック済みの）ファイルに保存しタイトルのファイル名やchangedフラグを更新する*/
-/*前提として、win->fileが更新されていて、そのファイルに保存する*/
-static void
-save_buffer(MoonedWindow *win) {
-  GtkWidget *message_dialog;
-  char *contents;
-  gchar *filename;
-  GtkTextIter start_iter;
-  GtkTextIter end_iter;
-
-  filename = g_file_get_basename(win->file);
-  gtk_text_buffer_get_bounds(win->text_buffer, &start_iter, &end_iter);
-  contents = gtk_text_buffer_get_text(win->text_buffer, &start_iter, &end_iter, TRUE);
-  if (g_file_replace_contents(win->file, contents, strlen(contents), NULL, TRUE, G_FILE_CREATE_NONE, NULL, NULL, NULL)) {
-    win->changed = FALSE;
-    gtk_window_set_title(GTK_WINDOW(win), filename);
-    g_free(filename);
-  }else {
-    message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
-                    GTK_BUTTONS_CLOSE, "ERROR : Can't save %s.", filename);
-    gtk_dialog_run(GTK_DIALOG(message_dialog));
-    g_free(filename);
-    gtk_widget_destroy(message_dialog);
-  }
-  g_free(contents);
-}
-
 /*メニュー＝＞アクション＝＞ハンドラ　の　各ハンドラ*/
 
 static void
-save_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-  MoonedWindow *win = MOONED_WINDOW(user_data);
-  GFile *file;
-
-  if (win->file == NULL) /*ファイルが設定されてなければsaveasと同じ動作*/
-    saveas_activated(action, parameter, user_data);
-  else
-    save_buffer(win);
+saveas_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+  saveas_real_activated(MOONED_WINDOW(user_data));
 }
 
 static void
-saveas_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-  MoonedWindow *win = MOONED_WINDOW(user_data);
-  GFile *file;
-  MoonedApplication *app;
-  MoonedWindow *same_win;
-  GtkWidget *message_dialog;
-  gchar *filename;
-
-  if ((file = mooned_saveas_file_chooser_dialog(win)) == NULL)
-    return; /* do nothing */
-  app = MOONED_APPLICATION(gtk_window_get_application(GTK_WINDOW(win)));
-  if ((same_win = mooned_find_window_has_same_file(app, file))  && (same_win != win)) { /*conflict !*/
-    filename = g_file_get_basename(file);
-    message_dialog = gtk_message_dialog_new(GTK_WINDOW(win), GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING,
-                      GTK_BUTTONS_CLOSE, "Can't save %s because it's in the other window.", filename);
-    gtk_dialog_run(GTK_DIALOG(message_dialog));
-    g_free(filename);
-    gtk_widget_destroy(message_dialog);
-  }else {
-    win->file = file;
-    save_buffer(win);
-  }
+save_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+  save_real_activated(MOONED_WINDOW(user_data));
 }
 
 static void
