@@ -8,6 +8,10 @@ struct _MoonedApplication {
 
 G_DEFINE_TYPE(MoonedApplication, mooned_application, GTK_TYPE_APPLICATION);
 
+/*--------------------------------------------*/
+/*ヘルパー（このファイル内からのみ参照される）*/
+/*--------------------------------------------*/
+
 static GFile *
 mooned_open_file_chooser_dialog(void) {
   GtkFileChooser *dialog;
@@ -27,27 +31,14 @@ mooned_open_file_chooser_dialog(void) {
   return file;
 }
 
-/*ファイルを新しいウィンドウで開くときに、既存のウィンドウと同じファイルを開くのはまずい。*/
-/*そこで、そのファイルのファイル名と同じものが既存のウィンドウのファイル名にあればそのウィンドウを返す*/
-/*同じものがなければNULLを返す。つまり、find_window_has_file*/
-/*この関数はmoonedwin.cでも保存時のチェックに使うので公開する*/
-
+/*宣言だけ。定義はファイルの最後の方に*/
+/*fileを編集中であるウィンドウを返す。なければNULLを返す*/
 MoonedWindow *
-mooned_find_window_has_same_file(MoonedApplication *app, GFile *file) {
-  GList *windows;
-  GFile *wfile;
-
-  for (windows = gtk_application_get_windows(GTK_APPLICATION(app)); windows != NULL; windows = windows->next)
-    /*wfileをg_object_unref()してはいけない*/
-    if ((wfile = mooned_window_get_file(MOONED_WINDOW(windows->data))) != NULL && g_file_equal(file, wfile))
-      return MOONED_WINDOW(windows->data); /*見つかった*/
-  return NULL; /*結局見つからなかった*/
-}
+mooned_find_window_has_same_file(MoonedApplication *app, GFile *file);
 
 /*空のウィンドウがあるかどうかのチェック*/
 /*空のウィンドウがある　＝＞　そのウィンドウを返す*/
 /*空のウィンドウはない　＝＞　NULLを返す*/
-
 static MoonedWindow *
 mooned_find_empty_window(MoonedApplication *app) {
   GList *windows;
@@ -61,8 +52,10 @@ mooned_find_empty_window(MoonedApplication *app) {
   return NULL;
 }
 
-/*アクションのハンドラ*/
-/*new, open, quit*/
+/*--------------------------------------------*/
+/*アクションのアクティベートシグナルのハンドラ*/
+/*     メニュー＝＞アクション＝＞ハンドラ     */
+/*--------------------------------------------*/
 
 static void
 new_activated(GSimpleAction *action, GVariant *parameter, gpointer app) {
@@ -108,8 +101,10 @@ quit_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
     g_action_activate(g_action_map_lookup_action(G_ACTION_MAP(windows->data), "close"), NULL); /*closeアクションをアクティベート*/
 }
 
-/*クラスのオブジェクト・メソッド・ハンドラをオーバーライドする関数。*/
-/*activate, open, startup*/
+/*--------------------------------------------*/
+/* クラスのオブジェクト・メソッド・ハンドラの */
+/* オーバーライド関数                         */
+/*--------------------------------------------*/
 
 static void
 mooned_application_activate(GApplication *app) {
@@ -133,7 +128,6 @@ mooned_application_open(GApplication *app, GFile **files, gint n_files, const gc
 }
 
 /*アクションの定義*/
-
 const GActionEntry entries[] = {
   {"new", new_activated, NULL, NULL, NULL},
   {"open", open_activated, NULL, NULL, NULL},
@@ -141,7 +135,6 @@ const GActionEntry entries[] = {
 };
 
 /*アクセラレータの定義*/
-
 struct {
   const gchar *action;
   const gchar *accels[2];
@@ -178,6 +171,10 @@ mooned_application_startup(GApplication *app) {
   g_object_unref(menubar);
 }
 
+/*--------------------------------------------*/
+/*        オブジェクトとクラスの初期化        */
+/*--------------------------------------------*/
+
 static void
 mooned_application_init(MoonedApplication *app) {
 }
@@ -189,9 +186,32 @@ mooned_application_class_init(MoonedApplicationClass *class) {
   G_APPLICATION_CLASS(class)->startup = mooned_application_startup;
 }
 
-MoonedApplication *mooned_application_new(void) {
+/*--------------------------------------------*/
+/*             外部に公開する関数             */
+/*--------------------------------------------*/
+
+MoonedApplication *
+mooned_application_new(void) {
   return g_object_new(MOONED_TYPE_APPLICATION,
                        "application-id", "com.github.ToshioCP.Mooned",
                        "flags", G_APPLICATION_HANDLES_OPEN,
                        NULL);
 }
+
+/*ファイルを新しいウィンドウで開くときに、既存のウィンドウと同じファイルを開くのはまずい。*/
+/*そこで、そのファイルのファイル名と同じものが既存のウィンドウのファイル名にあればそのウィンドウを返す*/
+/*同じものがなければNULLを返す。つまり、find_window_has_file*/
+/*この関数はmoonedwin.cでも保存時のチェックに使う*/
+MoonedWindow *
+mooned_find_window_has_same_file(MoonedApplication *app, GFile *file) {
+  GList *windows;
+  GFile *wfile;
+
+  for (windows = gtk_application_get_windows(GTK_APPLICATION(app)); windows != NULL; windows = windows->next) {
+    /*wfileをg_object_unref()してはいけない*/
+    if ((wfile = mooned_window_get_file(MOONED_WINDOW(windows->data))) != NULL && g_file_equal(file, wfile))
+      return MOONED_WINDOW(windows->data); /*見つかった*/
+  }
+  return NULL; /*結局見つからなかった*/
+}
+
