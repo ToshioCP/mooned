@@ -128,7 +128,7 @@ mooned_application_open(GApplication *app, GFile **files, gint n_files, const gc
 }
 
 /*アクションの定義*/
-const GActionEntry entries[] = {
+const GActionEntry app_entries[] = {
   {"new", new_activated, NULL, NULL, NULL},
   {"open", open_activated, NULL, NULL, NULL},
   {"quit", quit_activated, NULL, NULL, NULL}
@@ -159,10 +159,10 @@ mooned_application_startup(GApplication *app) {
 
   G_APPLICATION_CLASS(mooned_application_parent_class)->startup(app);
 
-  g_action_map_add_action_entries(G_ACTION_MAP(app), entries, G_N_ELEMENTS(entries), app);
+  g_action_map_add_action_entries(G_ACTION_MAP(app), app_entries, G_N_ELEMENTS(app_entries), app);
   for (i = 0; i < G_N_ELEMENTS(action_accels); i++)
     gtk_application_set_accels_for_action(GTK_APPLICATION(app), action_accels[i].action, action_accels[i].accels);
-  builder = gtk_builder_new_from_resource("/com/github/ToshioCP/Mooned/appmenu.ui");
+  builder = gtk_builder_new_from_resource("/com/github/ToshioCP/Mooned/menu.ui");
   appmenu = G_MENU(gtk_builder_get_object(builder, "appmenu"));
   gtk_application_set_app_menu(GTK_APPLICATION(app), G_MENU_MODEL(appmenu));
   g_object_unref(appmenu);

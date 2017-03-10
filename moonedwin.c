@@ -238,7 +238,7 @@ copy_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 
   clipboard = gtk_widget_get_clipboard(GTK_WIDGET(win->text_view), GDK_SELECTION_CLIPBOARD);
   gtk_text_buffer_copy_clipboard(win->text_buffer, clipboard);
- }
+}
 
 static void
 paste_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
