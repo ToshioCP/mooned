@@ -308,11 +308,11 @@ mooned_window_new(MoonedApplication *app) {
   gtk_text_view_set_monospace(win->text_view, TRUE);
   provider = gtk_css_provider_new();
   gtk_css_provider_load_from_data(provider,
-                                 "textview {"
-                                 "font: IPAGothic 12;"
-                                 "color: green;"
+                             "textview text {"
+                             "font: 12pt IPAGothic;"
+                             "color: green;"
                                  "}",
-                                 -1, NULL);
+                             -1, NULL);
   context = gtk_widget_get_style_context(GTK_WIDGET(win->text_view));
   gtk_style_context_add_provider(context,
                                GTK_STYLE_PROVIDER(provider),
