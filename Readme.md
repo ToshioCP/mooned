@@ -22,7 +22,17 @@ Mooned is a simple editor using GTK+3.
 
 ### licence
 
-[LGPL(GNU Lesser General Public License) ver 2.1](https://www.gnu.org/licenses/lgpl-2.1.html)
+Copyright (C) 2017  ToshioCP (Sekiya Toshio)
+
+Mooned is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+Mooned is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the [GNU Lesser General Public License](https://www.gnu.org/licenses/lgpl-2.1.html) for more details.
 
 --------------------------
 
@@ -46,5 +56,11 @@ moonedはGTK+3を使ったシンプルなエディタです。
 
 ### ライセンス
 
-moonedのライセンスは[LGPL](https://www.gnu.org/licenses/lgpl-2.1.html)になります。
-[日本語訳](https://osdn.net/projects/opensource/wiki/licenses%2FGNU_Library_or_Lesser_General_Public_License)もご覧ください。
+Copyright (C) 2017  ToshioCP (関谷 敏雄)
+
+moonedはフリーソフトウェアです。
+moonedは、フリーソフトウェア財団によって発行されたGNU 劣等一般公衆利用許諾契約書(バージョン2.1 か、希望によってはそれ以降のバージョンのうちどれか)の定める条件の下で再頒布または改変することができます。
+
+moonedは有用であることを願って頒布されますが、*全くの無保証* です。商業可能性の保証や特定の目的への適合性は、言外に示されたものも含め全く存在しません。
+詳しくは[GNU 劣等一般公衆利用許諾契約書](https://www.gnu.org/licenses/lgpl-2.1.html)をご覧ください。
+八田真行氏による[GNU 劣等一般公衆利用許諾契約書の日本語訳](https://osdn.net/projects/opensource/wiki/licenses%2FGNU_Library_or_Lesser_General_Public_License)もご覧ください。
