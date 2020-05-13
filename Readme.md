@@ -16,9 +16,19 @@ Mooned is a simple editor using GTK+3.
 
 1. Click 'Clone or Download' button, Click 'Download ZIP' in the small dialog.
 2. Extract the zip file.
-3. Open terminal and change its current directory to the extracted zip file.
-4. type 'make'.
-5. type './mooned' then you can run mooned.
+3. Open terminal and change its current directory to the directory extracted from the zip file.
+4. Type 'make' (you don't need to type single quotes).
+5. Type './mooned' then you can run mooned.
+
+### If you want to use meson in installation
+
+1. Extract the zip file above and change the current directory to the obtained directory.
+2. Type 'meson _build'.
+3. Type 'ninja -C _build'.
+4. Type '_build/mooned' then you can run mooned.
+5. If you want to install it into /usr/local/bin, type 'ninja -C _build install' as a root user.
+6. Then, you can run it by just typing 'mooned'. 
+7. For uninstall, type 'ninja -C _build uninstall' as a root user.
 
 ### licence
 
@@ -50,9 +60,19 @@ moonedはGTK+3を使ったシンプルなエディタです。
 
 1. 'Clone or Download'ボタンをクリックし、現れた小さなダイアログの'Download ZIP'をクリックする
 2. ダウンロードしたZipファイルを解凍する
-3. 端末を起動し、カレントディレクトリを解凍したZipファイルに移動する
+3. 端末を起動し、カレントディレクトリをzipファイルを解凍したディレクトリに移動する
 4. makeとタイプする
 5. ./moonedとタイプするとmoonedを起動することができます
+
+### mesonを使ってインストールする場合
+
+1. 上記によって入手したzipファイルを解凍し、そのディレクトリにカレントディレクトリを移動する
+2. meson _build とタイプする
+3. ninja -C _build とタイプする
+4. _build/mooned とタイプするとmoonedを起動することができる
+5. もし、/usr/local/binにインストールしたい場合は、rootユーザになり、ninja -C _build install とタイプする
+6. このインストールを行った後には、単にmoonedとタイプするだけで起動できるようになる
+7. アンインストールしたい場合は、rootユーザになり、ninja -C _build uninstallとタイプする
 
 ### ライセンス
 
