@@ -260,6 +260,20 @@ selectall_activated(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 /*--------------------------------------------*/
+/*        オブジェクトのディスポーズ（GFileのunref）  */
+/*--------------------------------------------*/
+
+static void
+mooned_window_dispose (GObject *gobject) {
+  MoonedWindow *win = MOONED_WINDOW (gobject);
+
+  if (G_IS_FILE (win->file))
+    g_clear_object (&win->file);
+
+  G_OBJECT_CLASS (mooned_window_parent_class)->dispose (gobject);
+}
+
+/*--------------------------------------------*/
 /*        オブジェクトとクラスの初期化        */
 /*--------------------------------------------*/
 
@@ -273,6 +287,8 @@ mooned_window_init (MoonedWindow *win)
 static void
 mooned_window_class_init (MoonedWindowClass *class)
 {
+  (G_OBJECT_CLASS (class))->dispose = mooned_window_dispose;
+
   gtk_widget_class_set_template_from_resource(GTK_WIDGET_CLASS(class), "/com/github/ToshioCP/Mooned/moonedwin.ui");
   gtk_widget_class_bind_template_child(GTK_WIDGET_CLASS(class), MoonedWindow, text_view);
 }
